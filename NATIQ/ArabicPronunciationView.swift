@@ -1,10 +1,3 @@
-//
-//  PronunciationViewModel.swift
-//  NATIQ
-//
-//  Created by Walaa on 19/12/2024.
-//
-
 import SwiftUI
 import AVFoundation
 import Speech
@@ -19,17 +12,35 @@ struct ArabicLetter: Identifiable {
 // MARK: - ViewModel
 class ArabicPronunciationViewModel: ObservableObject {
     @Published var letters: [ArabicLetter] = [
-        ArabicLetter(symbol: "أ", sound: "اه"),
-        ArabicLetter(symbol: "ر", sound: "راء"),
-        ArabicLetter(symbol: "ت", sound: "تاء"),
-        ArabicLetter(symbol: "ش", sound: "شاء"),
-        ArabicLetter(symbol: "م", sound: "ما"),
-        ArabicLetter(symbol: "ي", sound: "ياء"),
-        ArabicLetter(symbol: "خ", sound: "خاء"),
         ArabicLetter(symbol: "ب", sound: "باء"),
-        ArabicLetter(symbol: "و", sound: "وا"),
-        ArabicLetter(symbol: "ك", sound: "كاء"),
-       
+        ArabicLetter(symbol: "أ", sound: "اه"),
+        ArabicLetter(symbol: "ث", sound: "ثاء"),
+        ArabicLetter(symbol: "ت", sound: "تاء"),
+        ArabicLetter(symbol: "ح", sound: "حاء"),
+        ArabicLetter(symbol: "ج", sound: "جا"),
+        ArabicLetter(symbol: "د", sound: "دا"),
+        ArabicLetter(symbol: "خ", sound: "خاء"),
+        ArabicLetter(symbol: "ر", sound: "راء"),
+        ArabicLetter(symbol: "ذ", sound: "ذا"),
+        ArabicLetter(symbol: "س", sound: "‎سا"),
+        ArabicLetter(symbol: "ز", sound: "زاء"),
+        ArabicLetter(symbol: "ص", sound: "صا"),
+        ArabicLetter(symbol: "ش", sound: "شا"),
+        ArabicLetter(symbol: "ط", sound: "طا"),
+        ArabicLetter(symbol: "ض", sound: "ضاء"),
+        ArabicLetter(symbol: "ع", sound: "عا"),
+        ArabicLetter(symbol: "ظ", sound: "ظاء"),
+        ArabicLetter(symbol: "ف", sound: "فاء"),
+        ArabicLetter(symbol: "غ", sound: "غا"),
+        ArabicLetter(symbol: "ك", sound: "‎كاء"),
+        ArabicLetter(symbol: "ق", sound: "قاء"),
+        ArabicLetter(symbol: "م", sound: "ماء"),
+        ArabicLetter(symbol: "ل", sound: "كاء"),
+        ArabicLetter(symbol: "و", sound: "واء"),
+        ArabicLetter(symbol: "ن", sound: "نا"),
+        ArabicLetter(symbol: "ي", sound: "يا"),
+        ArabicLetter(symbol: "هـ", sound: "هاء"),
+        
     ]
     
     private var synthesizer = AVSpeechSynthesizer()
@@ -49,48 +60,80 @@ struct ArabicPronunciationView: View {
     let gridItems = [GridItem(.flexible()), GridItem(.flexible())]
     
     var body: some View {
-        VStack(alignment: .leading) {
-            // Title and description
-            VStack(alignment: .leading, spacing: 28) {
-                Text("نطق الأحرف")
-                    .font(.largeTitle)
-                    .bold()
-                Text("تعرَّف على نطق الصوت عند الضغط على كل حرف.")
-                    .font(.body)
-                    .foregroundColor(.gray)
-            }
-            .padding(.horizontal)
-            .padding(.top, 20)
-            
-            // Grid of letters
-            LazyVGrid(columns: gridItems, spacing: 20) {
-                ForEach(viewModel.letters) { letter in
-                    Button(action: {
-                        viewModel.pronounce(letter: letter)
-                    }) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.blue.opacity(0.15))
-                                .frame(height: 120)
-                            
-                            VStack {
-                                Text(letter.symbol)
-                                    .font(.system(size: 50))
-                                    .foregroundColor(.black)
-                                Image(systemName: "speaker.wave.2.fill")
-                                    .foregroundColor(.blue)
-                                    .font(.system(size: 24))
+        ScrollView { // Add the ScrollView here to make the content scrollable
+            VStack(alignment: .leading) {
+                // Title and description
+                VStack(alignment: .leading, spacing: 8) {
+                  HStack {
+                      Spacer()
+                      Text("نطق الأحرف")
+                          .font(.largeTitle)
+                          .bold()
+                    }
+                    HStack{
+                        Spacer()
+                        Text("تعرَّف على نطق الأحرف عند الضغط على كل حرف")
+                            .font(.body)
+                            .foregroundColor(.gray)
+                    }
+                   
+                }
+                .padding(.horizontal)
+                .padding(.top, 20)
+                
+                // Grid of letters
+                LazyVGrid(columns: gridItems, spacing: 20) {
+                    ForEach(viewModel.letters) { letter in
+                        Button(action: {
+                            viewModel.pronounce(letter: letter)
+                        }) {
+                            ZStack {
+                                // Linear gradient background for each letter button
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color("B1"), Color("B2")]),
+                                            //startPoint: .topLeading,
+                                            startPoint: .leading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 170, height: 170)
+                                
+                                VStack {
+                                    Text(letter.symbol)
+                                        .font(.system(size: 50))
+                                        .foregroundColor(Color("TextColor2"))
+                                        .offset(y: 25)
+                                        .offset(x: 0)
+                                    // Circle background behind the speaker icon
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color("B4"))
+                                            .frame(width: 40, height: 40)
+                                        
+                                        Image(systemName: "speaker.wave.2.fill")
+                                            .foregroundColor(Color("TextColor2"))
+                                            .font(.system(size: 18))
+                                            
+                                    }
+                                   
+                                    .offset(y: 8)
+                                    .offset(x: 53) /// Position the speaker below the letter symbol
+                                }
                             }
                         }
                     }
                 }
+                .padding(.horizontal)
+                .padding(.top, 20)
+                
+                Spacer()
             }
-            .padding(.horizontal)
-            .padding(.top, 20)
-            
-            Spacer()
+            .padding(.bottom)
+            .background( Color("BGC")) // Apply red background here
         }
-        .padding(.bottom)
+        .background( Color("BGC")) // Also add a red background to the scroll view
     }
 }
 

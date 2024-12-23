@@ -1,10 +1,3 @@
-//
-//  Words.swift
-//  NATIQ
-//
-//  Created by Walaa on 19/12/2024.
-//
-
 import SwiftUI
 import Speech
 
@@ -22,14 +15,14 @@ class CustomCardsViewModel: ObservableObject {
     ]
     
     @Published var searchText: String = ""
-    @Published var pronunciationResult: String = "" // Holds the pronunciation result message
-    @Published var isListening = false // Changed to @Published to observe in view
+    @Published var pronunciationResult: String = ""
+    @Published var isListening = false
 
-    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "ar-SA")) // Use Arabic locale
+    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "ar-DZ"))
     private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
     
-    // Toggle voice recognition on mic button press
+    // Toggles speech recognition
     func toggleVoiceRecognition() {
         if isListening {
             stopVoiceRecognition()
@@ -39,22 +32,21 @@ class CustomCardsViewModel: ObservableObject {
         isListening.toggle()
     }
     
-    // Starts speech recognition
-    func startVoiceRecognition() {
+    // Starts speech recognition authorization
+    private func startVoiceRecognition() {
         SFSpeechRecognizer.requestAuthorization { authStatus in
             DispatchQueue.main.async {
                 switch authStatus {
                 case .authorized:
                     self.startRecording()
-                case .denied, .restricted, .notDetermined:
-                    print("Speech recognition authorization denied.")
-                @unknown default:
-                    print("Unknown authorization status.")
+                default:
+                    self.pronunciationResult = "❌ الإذن مرفوض."
                 }
             }
         }
     }
     
+    // Starts recording audio and processing speech
     private func startRecording() {
         recognitionTask?.cancel()
         recognitionTask = nil
@@ -64,12 +56,12 @@ class CustomCardsViewModel: ObservableObject {
             try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
-            print("Audio session setup failed: \(error.localizedDescription)")
+            pronunciationResult = "❌ فشل إعداد الجلسة الصوتية: \(error.localizedDescription)"
             return
         }
         
         let inputNode = audioEngine.inputNode
-        inputNode.removeTap(onBus: 0) // Remove any existing tap before adding a new one
+        inputNode.removeTap(onBus: 0)
         
         let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
         recognitionRequest.shouldReportPartialResults = true
@@ -78,7 +70,6 @@ class CustomCardsViewModel: ObservableObject {
             if let result = result {
                 DispatchQueue.main.async {
                     self.searchText = result.bestTranscription.formattedString
-                    // Check pronunciation against the first card's title for simplicity
                     if let firstCard = self.cards.first {
                         self.checkPronunciation(for: firstCard.title)
                     }
@@ -86,9 +77,7 @@ class CustomCardsViewModel: ObservableObject {
             }
             
             if error != nil || result?.isFinal == true {
-                self.audioEngine.stop()
-                inputNode.removeTap(onBus: 0)
-                self.recognitionTask = nil
+                self.stopVoiceRecognition()
             }
         }
         
@@ -101,34 +90,34 @@ class CustomCardsViewModel: ObservableObject {
         do {
             try audioEngine.start()
         } catch {
-            print("AudioEngine failed to start: \(error.localizedDescription)")
+            pronunciationResult = "❌ فشل تشغيل المحرك الصوتي: \(error.localizedDescription)"
         }
     }
     
-    func stopVoiceRecognition() {
+    // Stops speech recognition
+    private func stopVoiceRecognition() {
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
         recognitionTask?.cancel()
         recognitionTask = nil
     }
     
+    // Compares recognized text with the target word
     func checkPronunciation(for word: String) {
-        let recognizedWord = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let targetWord = word.lowercased()
-        
-        if recognizedWord == targetWord {
+        let recognizedWord = searchText.normalizedArabic()
+        let targetWord = word.normalizedArabic()
+
+        if recognizedWord.range(of: targetWord, options: .caseInsensitive) != nil {
             pronunciationResult = "✅ صحيح!"
         } else {
-            pronunciationResult = "❌ حاول مجددًا! تم التعرف على: \(recognizedWord)"
-        }
-    }
-    
-    var filteredCards: [CustomCard] {
-        if searchText.isEmpty {
-            return cards
-        } else {
-            return cards.filter { $0.title.lowercased().contains(searchText.lowercased()) }
-        }
+               pronunciationResult = """
+               ❌ حاول مجددًا!
+               تم التعرف على: \(recognizedWord)
+               الكلمة المستهدفة: \(targetWord)
+               """
+           }
+
+        searchText = "" // Clear search text after comparison
     }
 }
 
@@ -140,105 +129,66 @@ struct CustomCardsPage: View {
         NavigationView {
             VStack {
                 // Header
-                VStack(alignment: .leading) {
-                    Text("جرّب نطقك، ولا تستسلم 💪")
-                        .font(.system(size: 20))
-                        .foregroundColor(.black)
-                        .padding(.vertical, 15)
-                }
-                .environment(\.layoutDirection, .rightToLeft) // Right-to-left for header text
-                
-                // Search Bar
-                TextField("ابحث عن كلمة...", text: $viewModel.searchText)
+                Text("جرّب نطقك، ولا تستسلم 💪")
+                    .font(.title2)
                     .padding()
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-                    .padding(.horizontal)
-                    .environment(\.layoutDirection, .rightToLeft) // Right-to-left for search bar text
+                    .multilineTextAlignment(.center)
+                    .environment(\.layoutDirection, .rightToLeft)
                 
                 // Cards Section
                 ScrollView {
                     LazyVStack(spacing: 16) {
-                        ForEach(viewModel.filteredCards) { card in
-                            CustomCardView(card: card, action: viewModel.toggleVoiceRecognition, pronunciationResult: $viewModel.pronunciationResult)
+                        ForEach(viewModel.cards) { card in
+                            CustomCardView(card: card, pronunciationResult: $viewModel.pronunciationResult)
                         }
                     }
-                    .padding(.horizontal)
+                    .padding()
                 }
                 
                 Spacer()
                 
-                // Voice Control Buttons
-                HStack(spacing: 5) {
-                    Button(action: {
-                        viewModel.toggleVoiceRecognition()
-                    }) {
-                        VoiceControlButton(iconName: viewModel.isListening ? "mic.slash.fill" : "mic.fill", color: .purple)
-                    }
+                // Voice Control Button
+                Button(action: viewModel.toggleVoiceRecognition) {
+                    VoiceControlButton(iconName: viewModel.isListening ? "mic.slash.fill" : "mic.fill", color: .purple)
                 }
-                .environment(\.layoutDirection, .rightToLeft) // Right-to-left for voice control buttons
+                .padding()
                 
-                // Display voice-to-text output under the mic button
-                Text(viewModel.searchText)
-                    .font(.system(size: 18))
-                    .foregroundColor(.black)
-                    .multilineTextAlignment(.center)
-                    .environment(\.layoutDirection, .rightToLeft) // Right-to-left for voice-to-text output
+                // Voice-to-text output
+                if !viewModel.searchText.isEmpty {
+                    Text(viewModel.searchText)
+                        .font(.body)
+                        .foregroundColor(.black)
+                        .padding()
+                        .multilineTextAlignment(.center)
+                }
             }
-            .background(Color(hex: "#F5F8FF"))
+            .background(Color(hex: "#F5F8FF").ignoresSafeArea())
             .navigationTitle("أختبر نطقك للكلمات")
-            .environment(\.layoutDirection, .rightToLeft) // Right-to-left for the entire page (except cards)
+            .environment(\.layoutDirection, .rightToLeft)
         }
     }
 }
 
 struct CustomCardView: View {
     let card: CustomCard
-    let action: () -> Void
-    @Binding var pronunciationResult: String // Bind to pronunciation result
+    @Binding var pronunciationResult: String
     
     var body: some View {
         VStack {
             Text(card.title)
-                .font(.system(size: 30, weight: .bold))
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 20)
-                .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 5)
-            
-            Text(pronunciationResult)
-                .font(.headline)
-                .foregroundColor(pronunciationResult.contains("✅") ? .green : .red)
+                .font(.title)
                 .padding()
-                .environment(\.layoutDirection, .rightToLeft)
             
-            HStack(spacing: 10) {
-                ForEach(card.letters.split(separator: " "), id: \.self) { letter in
-                    Text(String(letter))
-                        .font(.system(size: 20, weight: .bold))
-                        .frame(width: 44, height: 49)
-                        .background(Color.white)
-                        .cornerRadius(10)
-                        .foregroundColor(.black)
-                        .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 5)
-                }
+            if !pronunciationResult.isEmpty {
+                Text(pronunciationResult)
+                    .font(.headline)
+                    .foregroundColor(pronunciationResult.contains("✅") ? .green : .red)
             }
-            .padding(.top, 10)
         }
-        .frame(width: 301, height: 429) // Set the width and height of the card here
         .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 15)
-                .fill(LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 200 / 255, green: 212 / 255, blue: 247 / 255),
-                        Color(red: 177 / 255, green: 191 / 255, blue: 224 / 255)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
-                .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 5)
-        )
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 5)
     }
 }
 
@@ -249,15 +199,26 @@ struct VoiceControlButton: View {
     var body: some View {
         Image(systemName: iconName)
             .resizable()
-            .frame(width: 24, height: 24)
+            .scaledToFit()
+            .frame(width: 30, height: 30)
             .padding()
             .background(color)
             .foregroundColor(.white)
-            .cornerRadius(12)
+            .clipShape(Circle())
     }
 }
 
-// MARK: - Color Extension to Support Hex Colors
+// MARK: - Extensions
+extension String {
+    func normalizedArabic() -> String {
+        self.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "ى", with: "ي")
+            .replacingOccurrences(of: "ة", with: "ه")
+            .replacingOccurrences(of: "ـ", with: "")       // Remove tatweel
+            .applyingTransform(.stripCombiningMarks, reverse: false) ?? self
+    }
+}
+
 extension Color {
     init(hex: String) {
         let hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "")
@@ -278,5 +239,3 @@ struct CustomCardsPage_Previews: PreviewProvider {
         CustomCardsPage()
     }
 }
-
-
