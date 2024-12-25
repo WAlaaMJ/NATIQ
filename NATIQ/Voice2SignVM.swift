@@ -32,7 +32,7 @@ class Voice2SignVM: ObservableObject {
                 case .authorized:
                     print("Speech recognition authorized.")
                 case .denied:
-                    self.recognizedText = "تم رفض إذن التعرف على الكلام. فعلها من الإعدادات."
+                    self.recognizedText = ""
                 case .restricted, .notDetermined:
                     self.recognizedText = "التعرف على الكلام غير متاح."
                 @unknown default:
@@ -45,7 +45,7 @@ class Voice2SignVM: ObservableObject {
             AVAudioApplication.requestRecordPermission { granted in
                 if !granted {
                     DispatchQueue.main.async {
-                        self.recognizedText = "تم رفض إذن الميكروفون. فعلها من الإعدادات."
+                      //  self.recognizedText = "تم رفض إذن الميكروفون. فعلها من الإعدادات."
                     }
                 }
             }
@@ -53,7 +53,7 @@ class Voice2SignVM: ObservableObject {
             AVAudioSession.sharedInstance().requestRecordPermission { granted in
                 if !granted {
                     DispatchQueue.main.async {
-                        self.recognizedText = "تم رفض إذن الميكروفون. فعلها من الإعدادات."
+                    //    self.recognizedText = "تم رفض إذن الميكروفون. فعلها من الإعدادات."
                     }
                 }
             }
