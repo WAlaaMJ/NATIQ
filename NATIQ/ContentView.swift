@@ -1,4 +1,5 @@
-import SwiftUI
+/*
+ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
@@ -142,7 +143,7 @@ struct CardView: View {
                 Spacer()
                 Text(cardTitle())
                     .font(.title)
-                    .foregroundColor(Color("TextColor"))
+                    .foregroundColor(Color("TextColor2"))
                     .frame(maxWidth: .infinity, alignment: .topTrailing)
                     .padding(.bottom, 249)
                     .padding(.trailing, 15)
@@ -276,9 +277,9 @@ struct CardView: View {
     ContentView()
 }
 
+*/
 
 
-/*
 import SwiftUI
 
 struct ContentView: View {
@@ -539,4 +540,4 @@ struct CardView: View {
 #Preview {
     ContentView()
 }
-*/
+

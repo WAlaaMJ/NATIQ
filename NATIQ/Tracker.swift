@@ -309,3 +309,298 @@ struct WaveformView: View {
 #Preview {
     Tracker()
 }*/
+
+
+
+
+
+/*
+
+
+import SwiftUI
+
+// Make Tracker conform to ObservableObject
+class TrackerViewModel: ObservableObject {
+    @Published var recognizedText: String = ""
+    @Published var isRecording: Bool = false
+    @Published var audioLevels: [CGFloat] = []
+    
+    // Define the methods for starting and stopping the recording
+    func startRecording() {
+        // Your logic to start recording
+        isRecording = true
+    }
+    
+    func stopRecording() {
+        // Your logic to stop recording
+        isRecording = false
+    }
+}
+
+struct Tracker: View {
+    @StateObject private var vm = TrackerViewModel() // Use ViewModel that conforms to ObservableObject
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            VStack {
+                HStack {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "arrow.left")
+                            .font(.title)
+                            .bold()
+                            .foregroundColor(Color("B1"))
+                            .padding()
+                    }
+                    Spacer()
+                    Image("logo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 150, height: 100)
+                    Spacer()
+                    Spacer()
+                }
+                
+                Spacer()
+                
+                ZStack {
+                    Image("Image2")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 400, height: 400)
+                }
+                    .padding()
+                
+                Spacer()
+
+                Text(vm.recognizedText)
+                    .font(.title2)
+                    .foregroundColor(.gray)
+                    .padding()
+
+                VStack {
+                    Button(action: {
+                        if vm.isRecording {
+                            vm.stopRecording()
+                        } else {
+                            vm.startRecording()
+                        }
+                    }) {
+                        Image(systemName: vm.isRecording ? "mic.fill" : "mic")
+                            .font(.system(size: 80))
+                            .foregroundColor(.red)
+                            .padding()
+                    }
+                    
+                    if vm.isRecording {
+                        HStack(spacing: 4) {
+                            ForEach(Array(vm.audioLevels.enumerated()), id: \.offset) { index, height in
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(Color.red)
+                                    .frame(width: 6, height: height)
+                            }
+                        }
+                        .frame(height: 100)
+                        .padding()
+                    } else {
+                        Text("اضغط على الميكروفون للتحدث")
+                            .font(.title3)
+                            .foregroundColor(.gray)
+                            .padding(.top, 10)
+                    }
+                }
+                .padding(.bottom, 50)
+
+                Spacer()
+            }
+            .navigationBarBackButtonHidden(true)
+        }
+    }
+}
+
+#Preview {
+    Tracker()
+}*/
+
+
+import SwiftUI
+
+
+
+struct Tracker: View {
+    @StateObject private var vm = Voice2SignVM()
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            VStack {
+                HStack {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "arrow.left")
+                            .font(.title)
+                            .bold()
+                            .foregroundColor(Color("P3"))
+                            .padding()
+                    }
+                    Spacer()
+                    Image("logo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 150, height: 100)
+                    Spacer()
+                    Spacer()
+                    
+                }
+                
+                Spacer()
+                
+               
+                    .padding()
+                
+                Spacer()
+
+                Text(vm.recognizedText)
+                    .font(.title2)
+                    .foregroundColor(.gray)
+                    .padding()
+
+                VStack {
+                    Button(action: {
+                        if vm.isRecording {
+                            vm.stopRecording()
+                        } else {
+                            vm.startRecording()
+                        }
+                    }) {
+                        Image(systemName: vm.isRecording ? "mic.fill" : "mic")
+                            .font(.system(size: 80))
+                            .foregroundColor(Color("P3"))
+                            .padding()
+                    }
+                    
+
+
+/*if vm.isRecording {
+                        HStack(spacing: 4) {
+                            ForEach(Array(vm.audioLevels.enumerated()), id: \.offset) { index, height in
+                                RoundedRectangle(cornerRadius: 7)
+                                    .fill(Color.red)
+                                    .frame(width: 6, height: height)
+                            }
+                        }
+                        .frame(height: 200)
+                        .padding()
+                    }*/
+                    // 2
+                   /* if vm.isRecording {
+                        HStack(spacing: 4) {
+                            ForEach(Array(vm.audioLevels.enumerated()), id: \.offset) { index, height in
+                                RoundedRectangle(cornerRadius: 7)
+                                    .fill(Color.red)
+                                    .frame(width: 6, height: height)
+                                    // إضافة تأثير تغيير ديناميكي لكل خط بشكل مستقل
+                                    .animation(
+                                        .easeInOut(duration: 0.1 + Double(index) * 0.05), // تأخير مختلف لكل مستطيل حسب مؤشره
+                                        value: height
+                                    )
+                            }
+                        }
+                        .frame(height: 200)
+                        .padding(.horizontal)
+                        .padding(.vertical, 10)
+                    }*/
+                    
+                    // 3
+                    /*if vm.isRecording {
+                        HStack(spacing: 4) {
+                            ForEach(Array(vm.audioLevels.enumerated()), id: \.offset) { index, height in
+                                // تحديد اللون بناءً على مستوى الصوت
+                                let color: Color = height > 0.7 ? .red : .blue // إذا كان الصوت عاليًا جدًا (أكبر من 70%) يتحول للون الأحمر
+                                
+                                RoundedRectangle(cornerRadius: 7)
+                                    .fill(color) // استخدام اللون المحدد
+                                    .frame(width: 6, height: height)
+                                    .animation(
+                                        .easeInOut(duration: 0.1 + Double(index) * 0.05), // تأخير الأنيميشن مع تباين
+                                        value: height
+                                    )
+                            }
+                        }
+                        .frame(height: 200)
+                        .padding(.horizontal)
+                        .padding(.vertical, 10)
+                    }*/
+                  // 4
+                 /*   if vm.isRecording {
+                        HStack(spacing: 4) {
+                            ForEach(Array(vm.audioLevels.enumerated()), id: \.offset) { index, height in
+                                // تحديد اللون بناءً على مستوى الصوت
+                                let color: Color = height > 0.1 ? .blue : .red // إذا كان الصوت عاليًا جدًا (أكبر من 70%) يتحول للون الأحمر
+                                
+                                RoundedRectangle(cornerRadius: 7)
+                                    .fill(color) // استخدام اللون المحدد
+                                    .frame(width: 3, height: height)
+                                    .animation(
+                                        .easeInOut(duration: 0.1 + Double(index) * 0.05), // تأخير الأنيميشن مع تباين
+                                        value: height
+                                    )
+                            }
+                        }
+                        .frame(height: 200)
+                        .padding(.horizontal)
+                        .padding(.vertical, 10)
+                    }*/
+                    
+                    if vm.isRecording {
+                        HStack(spacing: 4) {
+                            ForEach(Array(vm.audioLevels.enumerated()), id: \.offset) { index, height in
+                                // تحديد اللون بناءً على مستوى الصوت مع استخدام تدرج لوني
+                                let color: Color = height > 0.7 ? Color("P3") : (height > 0.3 ? .yellow : .green)
+                                
+                                // إضافة تأثيرات الأنيميشن المختلفة
+                                RoundedRectangle(cornerRadius: 7)
+                                    .fill(color)
+                                    .frame(width: 3, height: height)
+                                    .scaleEffect(height > 0.5 ? 1.1 : 1) // تكبير العناصر عند الصوت العالي
+                                    .animation(
+                                        .easeInOut(duration: 0.1 + Double(index) * 0.05) // تأخير الأنيميشن مع تباين
+                                            .repeatForever(autoreverses: true),
+                                        value: height
+                                    )
+                            }
+                        }
+                     
+                        .padding(.horizontal)
+                        .padding(.vertical, 10)
+                     
+                    }
+
+
+
+
+
+
+                    
+                    
+                    
+                    
+                    else {
+                        Text("اضغط على الميكروفون للتحدث")
+                            .font(.title3)
+                            .foregroundColor(.gray)
+                            .padding(.top, 10)
+                    }
+                }
+                .padding(.bottom, 50)
+
+                Spacer()
+            }
+            .navigationBarBackButtonHidden(true)
+        }
+    }
+}
+
+
+#Preview {
+    Tracker()
+}
