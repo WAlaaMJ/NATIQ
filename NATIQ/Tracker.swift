@@ -1,538 +1,12 @@
-/*import SwiftUI
-import AVFoundation
-
-// Class-based model for audio tracking
-class AudioTracker: ObservableObject {
-    @Published var amplitudes: [Float] = Array(repeating: 0.0, count: 100)
-    @Published var frequency: Float = 0.0
-    
-    private var audioEngine: AVAudioEngine?
-    private var audioInputNode: AVAudioInputNode?
-    
-    init() {
-        // Only setup the audio engine if we're running on a real device, not in a preview
-        #if targetEnvironment(simulator)
-        print("Running in the simulator, skipping audio engine setup.")
-        #else
-        setupAudioEngine()
-        #endif
-    }
-    
-    func setupAudioEngine() {
-        audioEngine = AVAudioEngine()
-        
-        // Get the input node for audio
-        audioInputNode = audioEngine?.inputNode
-        audioInputNode?.installTap(onBus: 0, bufferSize: 1024, format: audioInputNode?.outputFormat(forBus: 0)) { [weak self] (buffer, time) in
-            guard let self = self else { return }
-            
-            // Analyze the audio data to get the amplitude
-            var avgPower: Float = 0.0
-            let channelData = buffer.floatChannelData?[0]
-            for i in 0..<Int(buffer.frameLength) {
-                avgPower += channelData?[i] ?? 0.0
-            }
-            avgPower /= Float(buffer.frameLength)
-            
-            // Append amplitude and ensure we don't exceed 100 elements
-            DispatchQueue.main.async {
-                self.amplitudes.append(avgPower)
-                if self.amplitudes.count > 100 {
-                    self.amplitudes.removeFirst()
-                }
-            }
-            
-            // Extract the frequency
-            self.extractFrequency(from: buffer)
-        }
-        
-        // Start the audio engine
-        do {
-            try audioEngine?.start()
-        } catch {
-            print("Error starting audio engine: \(error)")
-        }
-    }
-    
-    func extractFrequency(from buffer: AVAudioPCMBuffer) {
-        // Analyze frequency using FFT (Fast Fourier Transform)
-        let channelData = buffer.floatChannelData?[0]
-        let frameLength = Int(buffer.frameLength)
-        
-        // Simple frequency detection based on the largest magnitude
-        var highestMagnitude: Float = 0.0
-        for i in 0..<frameLength {
-            let magnitude = abs(channelData?[i] ?? 0.0)
-            if magnitude > highestMagnitude {
-                highestMagnitude = magnitude
-                // Calculate frequency from FFT
-                frequency = Float(i) * Float(buffer.format.sampleRate) / Float(frameLength)
-            }
-        }
-        
-        // Update frequency in the UI
-        DispatchQueue.main.async {
-            self.frequency = self.frequency
-        }
-    }
-    
-    func stopAudioEngine() {
-        audioEngine?.stop()
-    }
-}
-
-struct Tracker: View {
-    @StateObject private var audioTracker = AudioTracker()
-    
-    var body: some View {
-        VStack {
-            Spacer()
-            
-            // Display current frequency
-            Text("Current Frequency: \(audioTracker.frequency, specifier: "%.2f") Hz")
-                .font(.title)
-                .padding()
-            
-            // Display waveform
-            WaveformView(amplitudes: audioTracker.amplitudes)
-                .frame(maxHeight: 200)
-                .padding()
-            
-            Spacer()
-        }
-        .onDisappear {
-            audioTracker.stopAudioEngine()
-        }
-    }
-}
-
-struct WaveformView: View {
-    var amplitudes: [Float]
-    
-    var body: some View {
-        GeometryReader { geometry in
-            Path { path in
-                let width = geometry.size.width
-                let height = geometry.size.height
-                
-                path.move(to: CGPoint(x: 0, y: height / 2))
-                
-                for (index, amplitude) in self.amplitudes.enumerated() {
-                    let xPosition = CGFloat(index) / CGFloat(self.amplitudes.count) * width
-                    let yPosition = CGFloat(amplitude) * height / 2
-                    path.addLine(to: CGPoint(x: xPosition, y: height / 2 + yPosition))
-                }
-            }
-            .stroke(Color.blue, lineWidth: 2)
-            .frame(width: geometry.size.width, height: geometry.size.height)
-        }
-    }
-}
-
-#Preview {
-    Tracker()
-}*/
-
-/*
 import SwiftUI
 import AVFoundation
-import Accelerate
-
-// Class-based model for audio tracking
-class AudioTracker: ObservableObject {
-    @Published var amplitudes: [Float] = Array(repeating: 0.0, count: 100)
-    @Published var frequency: Float = 0.0
-    
-    private var audioEngine: AVAudioEngine?
-    private var audioInputNode: AVAudioInputNode?
-    
-    init() {
-        // Only setup the audio engine if we're running on a real device, not in a preview
-        #if targetEnvironment(simulator)
-        print("Running in the simulator, skipping audio engine setup.")
-        #else
-        // Don't initialize audio engine until needed
-        #endif
-    }
-    
-    func setupAudioEngine() {
-        audioEngine = AVAudioEngine()
-        
-        // Get the input node for audio
-        audioInputNode = audioEngine?.inputNode
-        audioInputNode?.installTap(onBus: 0, bufferSize: 1024, format: audioInputNode?.outputFormat(forBus: 0)) { [weak self] (buffer, time) in
-            guard let self = self else { return }
-            
-            // Analyze the audio data to get the amplitude
-            var avgPower: Float = 0.0
-            let channelData = buffer.floatChannelData?[0]
-            for i in 0..<Int(buffer.frameLength) {
-                avgPower += channelData?[i] ?? 0.0
-            }
-            avgPower /= Float(buffer.frameLength)
-            
-            // Append amplitude and ensure we don't exceed 100 elements
-            DispatchQueue.main.async {
-                self.amplitudes.append(avgPower)
-                if self.amplitudes.count > 100 {
-                    self.amplitudes.removeFirst()
-                }
-            }
-            
-            // Extract the frequency
-            self.extractFrequency(from: buffer)
-        }
-        
-        // Start the audio engine
-        do {
-            try audioEngine?.start()
-        } catch {
-            print("Error starting audio engine: \(error)")
-        }
-    }
-    
-    func extractFrequency(from buffer: AVAudioPCMBuffer) {
-        let frameLength = Int(buffer.frameLength)
-        let channelData = buffer.floatChannelData?[0]
-        
-        // Create arrays for real and imaginary components
-        var real = [Float](repeating: 0.0, count: frameLength / 2)
-        var imaginary = [Float](repeating: 0.0, count: frameLength / 2)
-        var splitComplex = DSPSplitComplex(realp: &real, imagp: &imaginary)
-        
-        // Convert the audio data to DSPSplitComplex format
-        vDSP_ctoz(channelData, 2, &splitComplex, 1, vDSP_Length(frameLength / 2))
-        
-        // Create the FFT setup
-        let log2n = vDSP_Length(log2(Float(frameLength)))
-        let fftSetup = vDSP_create_fftsetup(log2n, Int32(kFFTRadix2))
-        
-        // Perform FFT (forward transform)
-        vDSP_fft_zrip(fftSetup!, &splitComplex, 1, log2n, Int32(kFFTDirection_Forward))
-        
-        // Calculate the magnitudes from the real and imaginary parts
-        var magnitudes = [Float](repeating: 0.0, count: frameLength / 2)
-        vDSP_zvabs(&splitComplex, 1, &magnitudes, 1, vDSP_Length(frameLength / 2))
-        
-        // Find the index of the largest magnitude
-        if let maxMagIndex = magnitudes.enumerated().max(by: { $0.element < $1.element })?.offset {
-            let sampleRate = Float(buffer.format.sampleRate)
-            let frequency = Float(maxMagIndex) * sampleRate / Float(frameLength)
-            
-            // Update frequency
-            DispatchQueue.main.async {
-                self.frequency = frequency
-            }
-        }
-        
-        // Cleanup the FFT setup
-        vDSP_destroy_fftsetup(fftSetup)
-    }
-    
-    func stopAudioEngine() {
-        audioEngine?.stop()
-        audioEngine = nil
-        audioInputNode = nil
-    }
-}
 
 struct Tracker: View {
-    @StateObject private var audioTracker = AudioTracker()
-    @State private var isRecording = false  // State to track recording status
-    
-    var body: some View {
-        VStack {
-            Spacer()
-            
-            // Display current frequency with dynamic font size
-            Text("Current Frequency: \(audioTracker.frequency, specifier: "%.2f") Hz")
-                .font(.title)
-                .foregroundColor(audioTracker.frequency > 1000 ? .red : .blue)  // Color change based on frequency
-                .padding()
-            
-            // Display waveform
-            WaveformView(amplitudes: audioTracker.amplitudes)
-                .frame(maxHeight: 200)
-                .padding()
-            
-            Spacer()
-            
-            // Start/Stop Button
-            Button(action: {
-                if isRecording {
-                    audioTracker.stopAudioEngine()
-                } else {
-                    audioTracker.setupAudioEngine()
-                }
-                isRecording.toggle()
-            }) {
-                Text(isRecording ? "Stop" : "Start")
-                    .font(.title2)
-                    .padding()
-                    .background(isRecording ? Color.red : Color.green)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-            }
-            .padding(.bottom)
-        }
-        .onDisappear {
-            if isRecording {
-                audioTracker.stopAudioEngine()
-            }
-        }
-    }
-}
-
-struct WaveformView: View {
-    var amplitudes: [Float]
-    
-    var body: some View {
-        GeometryReader { geometry in
-            Path { path in
-                let width = geometry.size.width
-                let height = geometry.size.height
-                
-                path.move(to: CGPoint(x: 0, y: height / 2))
-                
-                for (index, amplitude) in self.amplitudes.enumerated() {
-                    let xPosition = CGFloat(index) / CGFloat(self.amplitudes.count) * width
-                    let yPosition = CGFloat(amplitude) * height / 2
-                    path.addLine(to: CGPoint(x: xPosition, y: height / 2 + yPosition))
-                }
-            }
-            .stroke(Color.blue, lineWidth: 2)
-            .frame(width: geometry.size.width, height: geometry.size.height)
-        }
-    }
-}
-
-#Preview {
-    Tracker()
-}*/
-
-
-
-
-
-/*
-
-
-import SwiftUI
-
-// Make Tracker conform to ObservableObject
-class TrackerViewModel: ObservableObject {
-    @Published var recognizedText: String = ""
-    @Published var isRecording: Bool = false
-    @Published var audioLevels: [CGFloat] = []
-    
-    // Define the methods for starting and stopping the recording
-    func startRecording() {
-        // Your logic to start recording
-        isRecording = true
-    }
-    
-    func stopRecording() {
-        // Your logic to stop recording
-        isRecording = false
-    }
-}
-
-struct Tracker: View {
-    @StateObject private var vm = TrackerViewModel() // Use ViewModel that conforms to ObservableObject
+    @StateObject private var audioManager = AudioManager()  // AudioManager instance for noise feedback
     @Environment(\.dismiss) var dismiss
     
-    var body: some View {
-        NavigationStack {
-            VStack {
-                HStack {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "arrow.left")
-                            .font(.title)
-                            .bold()
-                            .foregroundColor(Color("B1"))
-                            .padding()
-                    }
-                    Spacer()
-                    Image("logo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 150, height: 100)
-                    Spacer()
-                    Spacer()
-                }
-                
-                Spacer()
-                
-                ZStack {
-                    Image("Image2")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 400, height: 400)
-                }
-                    .padding()
-                
-                Spacer()
-
-                Text(vm.recognizedText)
-                    .font(.title2)
-                    .foregroundColor(.gray)
-                    .padding()
-
-                VStack {
-                    Button(action: {
-                        if vm.isRecording {
-                            vm.stopRecording()
-                        } else {
-                            vm.startRecording()
-                        }
-                    }) {
-                        Image(systemName: vm.isRecording ? "mic.fill" : "mic")
-                            .font(.system(size: 80))
-                            .foregroundColor(.red)
-                            .padding()
-                    }
-                    
-                    if vm.isRecording {
-                        HStack(spacing: 4) {
-                            ForEach(Array(vm.audioLevels.enumerated()), id: \.offset) { index, height in
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(Color.red)
-                                    .frame(width: 6, height: height)
-                            }
-                        }
-                        .frame(height: 100)
-                        .padding()
-                    } else {
-                        Text("اضغط على الميكروفون للتحدث")
-                            .font(.title3)
-                            .foregroundColor(.gray)
-                            .padding(.top, 10)
-                    }
-                }
-                .padding(.bottom, 50)
-
-                Spacer()
-            }
-            .navigationBarBackButtonHidden(true)
-        }
-    }
-}
-
-#Preview {
-    Tracker()
-}*/
-
-/*
-import SwiftUI
-
-
-
-struct Tracker: View {
-    @StateObject private var vm = Voice2SignVM()
-    @Environment(\.dismiss) var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            VStack {
-                HStack {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "arrow.left")
-                            .font(.title)
-                            .bold()
-                            .foregroundColor(Color("P3"))
-                            .padding()
-                    }
-                    Spacer()
-                    Image("logo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 150, height: 100)
-                    Spacer()
-                    Spacer()
-                    
-                }
-                
-                Spacer()
-                
-               
-                    .padding()
-                
-                Spacer()
-
-                Text(vm.recognizedText)
-                    .font(.title2)
-                    .foregroundColor(.gray)
-                    .padding()
-
-                VStack {
-                    Button(action: {
-                        if vm.isRecording {
-                            vm.stopRecording()
-                        } else {
-                            vm.startRecording()
-                        }
-                    }) {
-                        Image(systemName: vm.isRecording ? "mic.fill" : "mic")
-                            .font(.system(size: 80))
-                            .foregroundColor(Color("P3"))
-                            .padding()
-                    }
-                    
-
-
-                    
-                    if vm.isRecording {
-                        HStack(spacing: 4) {
-                            ForEach(Array(vm.audioLevels.enumerated()), id: \.offset) { index, height in
-                                // تحديد اللون بناءً على مستوى الصوت مع استخدام تدرج لوني
-                                let color: Color = height > 0.7 ? Color("P3") : (height > 0.3 ? .yellow : .green)
-                                
-                                // إضافة تأثيرات الأنيميشن المختلفة
-                                RoundedRectangle(cornerRadius: 7)
-                                    .fill(color)
-                                    .frame(width: 3, height: height)
-                                    .scaleEffect(height > 0.5 ? 1.1 : 1) // تكبير العناصر عند الصوت العالي
-                                    .animation(
-                                        .easeInOut(duration: 0.1 + Double(index) * 0.05) // تأخير الأنيميشن مع تباين
-                                            .repeatForever(autoreverses: true),
-                                        value: height
-                                    )
-                            }
-                        }
-                     
-                        .padding(.horizontal)
-                        .padding(.vertical, 10)
-                     
-                    }
-
-                    
-                    
-                    else {
-                        Text("")
-                            .font(.title3)
-                            .foregroundColor(.gray)
-                            .padding(.top, 10)
-                    }
-                }
-                .padding(.bottom, 50)
-
-                Spacer()
-            }
-            .navigationBarBackButtonHidden(true)
-        }
-    }
-}
-
-
-#Preview {
-    Tracker()
-}
-*/
-import SwiftUI
-
-struct Tracker: View {
-    @StateObject private var vm = Voice2SignVM()
-    @Environment(\.dismiss) var dismiss
+    @State private var feedbackMessage = ""
+    @State private var backgroundColor: Color = Color("BGC")
     
     var body: some View {
         NavigationStack {
@@ -556,55 +30,51 @@ struct Tracker: View {
                 .padding(.top, 20)
                 
                 Spacer()
-
-                // النص المعرف
-             
-
-                // ترددات الصوت في الجزء العلوي
-                if vm.isRecording {
-                    VStack {
-                        HStack(spacing: 4) {
-                            ForEach(Array(vm.audioLevels.enumerated()), id: \.offset) { index, height in
-                                let color: Color = height > 0.7 ? Color("P3") : (height > 0.3 ? .yellow : .green)
-                                RoundedRectangle(cornerRadius: 7)
-                                    .fill(color)
-                                    .frame(width: 3, height: height)
-                                    .scaleEffect(height > 0.5 ? 1.1 : 1) // تكبير العناصر عند الصوت العالي
-                                    .animation(
-                                        .easeInOut(duration: 0.1 + Double(index) * 0.05) // تأخير الأنيميشن مع تباين
-                                            .repeatForever(autoreverses: true),
-                                        value: height
-                                    )
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .center) // جعل الترددات في المنتصف
-                        .padding(.horizontal)
-                        .padding(.vertical, 10)
-                        .frame(height: UIScreen.main.bounds.height / 2) // جعل ترددات الصوت في نصف الشاشة
+                
+                // Frequency animation (shorter bars based on decibel levels)
+                HStack(spacing: 4) {
+                    ForEach(0..<10) { index in
+                        let barHeight = CGFloat(max(min(audioManager.decibelLevel + 100, 100), 0)) / 100 * 100 // Scale height to 100
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(audioManager.decibelLevel > -10 ? Color.red : (audioManager.decibelLevel > -30 ? Color.green : Color.gray))
+                            .frame(width: 10, height: audioManager.isMonitoring ? barHeight : 5) // Stop animation when not monitoring
+                            .animation(
+                                audioManager.isMonitoring
+                                    ? .easeInOut(duration: 0.1 + Double(index) * 0.05)
+                                    : .default, // No animation when not monitoring
+                                value: barHeight
+                            )
                     }
                 }
-                Text(vm.recognizedText)
-                    .font(.title2)
-                    .foregroundColor(.gray)
-                    .padding()
+                .frame(height: 100) // Adjust overall frame height
+                .padding(.vertical, 20)
+
+                // Feedback message
+                Text(feedbackMessage)
+                    .font(.headline)
+                    .foregroundColor(.red)
+                    .padding(.top, 20)
+
                 Spacer()
 
                 // زر المايك في الأسفل
                 VStack {
                     Button(action: {
-                        if vm.isRecording {
-                            vm.stopRecording()
+                        if audioManager.isMonitoring {
+                            audioManager.stopMonitoring()
+                            feedbackMessage = ""
+                            backgroundColor = Color("BGC")
                         } else {
-                            vm.startRecording()
+                            audioManager.startMonitoring()
                         }
                     }) {
-                        Image(systemName: vm.isRecording ? "mic.fill" : "mic")
+                        Image(systemName: audioManager.isMonitoring ? "mic.fill" : "mic")
                             .font(.system(size: 80))
                             .foregroundColor(Color("P3"))
                             .padding()
                     }
                     
-                    Text(vm.isRecording ? "اتسجيل جاري..." : "اضغط للتسجيل")
+                    Text(audioManager.isMonitoring ? "تسجيل جاري..." : "اضغط للتسجيل")
                         .font(.title3)
                         .foregroundColor(.gray)
                         .padding(.top, 10)
@@ -612,7 +82,64 @@ struct Tracker: View {
                 .padding(.bottom, 50) // وضع زر المايك في الأسفل
             }
             .navigationBarBackButtonHidden(true)
+            .onReceive(audioManager.$decibelLevel) { decibelLevel in
+                // Update the feedback message based on decibel level
+                if decibelLevel > -10 {
+                    feedbackMessage = "الصوت مرتفع جدًا 🚨"
+                    backgroundColor = .red
+                } else if decibelLevel > -30 {
+                    feedbackMessage = "الصوت جيد 🎙"
+                    backgroundColor = Color("BGC")
+                } else {
+                    feedbackMessage = "الصوت منخفض جدًا 📉"
+                    backgroundColor = Color("BGC") // Use natural color for low voice level
+                }
+            }
+            .background(backgroundColor)  // Change background color based on voice level
         }
+    }
+}
+
+class AudioManager: ObservableObject {
+    private var audioEngine: AVAudioEngine = AVAudioEngine()
+    @Published var decibelLevel: Float = -100
+    var isMonitoring = false
+    
+    func startMonitoring() {
+        isMonitoring = true
+        
+        let inputNode = audioEngine.inputNode
+        let recordingFormat = inputNode.outputFormat(forBus: 0)
+        
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
+            let rms = self.calculateRMS(from: buffer)
+            let avgPower = rms > 0 ? 20 * log10(rms) : -100
+            DispatchQueue.main.async {
+                self.decibelLevel = avgPower
+            }
+        }
+        
+        audioEngine.prepare()
+        do {
+            try audioEngine.start()
+        } catch {
+            print("Failed to start audio engine: \(error.localizedDescription)")
+        }
+    }
+    
+    func stopMonitoring() {
+        isMonitoring = false
+        audioEngine.stop()
+        audioEngine.inputNode.removeTap(onBus: 0)
+        decibelLevel = -100
+    }
+    
+    private func calculateRMS(from buffer: AVAudioPCMBuffer) -> Float {
+        guard let channelData = buffer.floatChannelData?[0] else { return 0 }
+        let channelDataArray = Array(UnsafeBufferPointer(start: channelData, count: Int(buffer.frameLength)))
+        
+        let rms = sqrt(channelDataArray.map { $0 * $0 }.reduce(0, +) / Float(buffer.frameLength))
+        return rms
     }
 }
 
