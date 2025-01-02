@@ -2,15 +2,13 @@ import SwiftUI
 
 struct Favorite: View {
     @ObservedObject var viewModel: CustomCardsViewModel
-    @State private var searchText: String = ""
-    
-    @Environment(\.presentationMode) private var presentationMode
-    
+    @State private var activeCardIndex: Int = 0 // Tracks the active card
+    @State private var localFavoriteCards: [CustomCard] = [] // Local state for results
+
     var body: some View {
-        VStack(alignment: .leading) {
+        VStack {
             // Top Bar
             HStack {
-               
                 Spacer()
                 Text("المفضلة ⭐️")
                     .font(.system(size: 29))
@@ -20,49 +18,90 @@ struct Favorite: View {
             }
             .padding(.horizontal, 26)
             .padding(.top, 19)
-            
-            // Search Bar
-            TextField("ما هو الدرس الذي تبحث عنه؟", text: $searchText)
-                .padding()
-                .background(Color("SearchBar"))
-                .cornerRadius(10)
-                .shadow(radius: 0.2)
-                .padding(.horizontal, 18)
-                .padding(.top, 53)
-            
-            // Horizontal Scroll of Favorite Cards
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 20) {
-                    ForEach(filteredFavoriteCards(), id: \.id) { card in
+
+            if localFavoriteCards.isEmpty {
+                // Show a message if no favorite cards exist
+                Text("لا توجد بطاقات مفضلة حاليًا")
+                    .font(.headline)
+                    .foregroundColor(Color.gray)
+                    .padding()
+            } else {
+                // Horizontal Swipeable Favorite Cards
+                TabView(selection: $activeCardIndex) {
+                    ForEach(localFavoriteCards.indices, id: \.self) { index in
                         CustomCardView(
-                            card: card,
-                            pronunciationResult: card.pronunciationResult,
-                            showResult: card.showResult,
-                            isActive: false // Card title remains gray
+                            card: localFavoriteCards[index],
+                            pronunciationResult: localFavoriteCards[index].pronunciationResult,
+                            showResult: localFavoriteCards[index].showResult,
+                            isActive: index == activeCardIndex
                         )
-                        .frame(width: 300, height: 420)
+                        .tag(index) // Associate each card with its index for TabView
                     }
                 }
-                // 1) Force the HStack to expand and center its contents horizontally
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                .onChange(of: activeCardIndex) { newValue in
+                    if newValue < localFavoriteCards.count {
+                        viewModel.activeCardIndex = newValue
+                    }
+                }
+
+                // Buttons Aligned Below Cards
+                buttonsAligned
             }
-            // 2) If you also want the entire scroll area centered vertically, you can do:
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
         .background(Color("BGC").ignoresSafeArea())
+        .onAppear {
+            // Sync local favorite cards with the view model
+            localFavoriteCards = viewModel.favoriteCards
+        }
     }
-    
-    /// Filters the favorite cards based on the search text
-    private func filteredFavoriteCards() -> [CustomCard] {
-        if searchText.isEmpty {
-            return viewModel.favoriteCards
-        } else {
-            return viewModel.favoriteCards.filter {
-                $0.title.localizedCaseInsensitiveContains(searchText)
+
+    private var buttonsAligned: some View {
+        HStack(spacing: 65) {
+            if !localFavoriteCards.isEmpty {
+                // Favorite Button
+                ZStack {
+                    Circle()
+                        .fill(Color("white"))
+                        .frame(width: 50, height: 50)
+                    Image(systemName: localFavoriteCards[activeCardIndex].isStarFilled ? "star.fill" : "star")
+                        .foregroundColor(Color("P3"))
+                        .font(.system(size: 30))
+                }
+                .onTapGesture {
+                    let card = localFavoriteCards[activeCardIndex]
+                    viewModel.toggleFavorite(for: card)
+                    localFavoriteCards = viewModel.favoriteCards // Sync local favorites
+                }
+
+                // Voice Recognition Button
+                ZStack {
+                    Circle()
+                        .fill(Color("white"))
+                        .frame(width: 50, height: 50)
+                    Image(systemName: viewModel.isListening ? "mic.fill" : "mic.slash.fill")
+                        .foregroundColor(Color("P3"))
+                        .font(.system(size: 30))
+                }
+                .onTapGesture {
+                    viewModel.toggleVoiceRecognition()
+                }
+
+                // Speak Text Button
+                ZStack {
+                    Circle()
+                        .fill(Color("white"))
+                        .frame(width: 50, height: 50)
+                    Image(systemName: "speaker.wave.2.fill")
+                        .foregroundColor(Color("P3"))
+                        .font(.system(size: 30))
+                }
+                .onTapGesture {
+                    viewModel.speakText(for: localFavoriteCards[activeCardIndex])
+                }
             }
         }
+        .padding()
     }
 }
 
@@ -70,7 +109,8 @@ struct Favorite: View {
 struct Favorite_Previews: PreviewProvider {
     static var previews: some View {
         let previewVM = CustomCardsViewModel()
-        previewVM.toggleFavorite(for: previewVM.cards[0])
+        previewVM.toggleFavorite(for: previewVM.cards[0]) // Add a favorite for preview
+        previewVM.toggleFavorite(for: previewVM.cards[1]) // Add another favorite
         return Favorite(viewModel: previewVM)
             .previewDisplayName("Favorite Preview")
     }
