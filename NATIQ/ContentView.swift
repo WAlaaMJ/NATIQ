@@ -640,11 +640,13 @@ struct ContentView: View {
                 // أيقونة النجمة في الزاوية العلوية اليسرى
                 VStack {
                     HStack {
+                        Circle()
+                            .fill(Color("white"))
+                            .frame(width:10 , height: 10)
                         Image(systemName: "star.fill")
-                            .resizable()
-                            .foregroundColor(.yellow)
-                            .frame(width: 32, height: 30)
-                            .padding(.leading, 25)
+                            .foregroundColor(Color("P3"))
+                            .font(.system(size: 30))
+
                         Spacer()
                     }
                     Spacer()

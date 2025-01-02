@@ -14,10 +14,11 @@ struct CustomCard: Identifiable {
 // MARK: - ViewModel
 class CustomCardsViewModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     @Published var cards: [CustomCard] = [
-        CustomCard(title: "انا جيد", letters: "د ي ج"),
-        CustomCard(title: "بخير", letters: "ر ي خ ب"),
-        CustomCard(title: "سعيد", letters: "د ي ع س")
+        CustomCard(title: "أَنَا جَيِّد", letters: "د يِّ جَ"),
+        CustomCard(title: "بِخَيْر", letters: "ر يْ خَ بِ"),
+        CustomCard(title: "سَعِيد", letters: "د ي عِ سَ")
     ]
+
     @Published var searchText: String = ""
     @Published var pronunciationResult: String = ""
     @Published var isListening = false
@@ -172,13 +173,19 @@ struct CustomCardsPage: View {
     @StateObject private var viewModel = CustomCardsViewModel()
 
     var body: some View {
-        VStack {
-            headerView
-            cardsView
-            voiceControlButton
-            additionalIcons
-        }
-    }
+           ZStack {
+               // Set the background color of the page
+               Color("BGC")
+                   .edgesIgnoringSafeArea(.all)
+
+               VStack {
+                   headerView
+                   cardsView
+                   buttonsAligned // Buttons aligned in one line
+               }
+           }
+       }
+
 
     private var headerView: some View {
         VStack {
@@ -211,8 +218,7 @@ struct CustomCardsPage: View {
                     card: viewModel.cards[index],
                     pronunciationResult: viewModel.cards[index].pronunciationResult,
                     showResult: viewModel.cards[index].showResult,
-                    isActive: index == viewModel.activeCardIndex,
-                    speakAction: { viewModel.speakText(for: viewModel.cards[index]) }
+                    isActive: index == viewModel.activeCardIndex
                 )
                 .tag(index)
             }
@@ -220,52 +226,53 @@ struct CustomCardsPage: View {
         .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
     }
 
-    private var voiceControlButton: some View {
-        Button(action: {
-            viewModel.toggleVoiceRecognition()
-        }) {
-            VoiceControlButton(
-                iconName: viewModel.isListening ? "mic.fill" : "mic.slash.fill",
-                color: Color("P3"),
-                size: 35
-            )
+    private var buttonsAligned: some View {
+        HStack(spacing: 65) {
+            
+            ZStack {
+                Circle()
+                    .fill(Color("white"))
+                    .frame(width: 50, height: 50)
+                Image(systemName: "star.fill")
+                    .foregroundColor(Color("P3"))
+                    .font(.system(size: 30))
+            }
+            ZStack {
+                Circle()
+                    .fill(Color("white"))
+                    .frame(width: 50, height: 50)
+                Image(systemName: viewModel.isListening ? "mic.fill" : "mic.slash.fill")
+                    .foregroundColor(Color("P3"))
+                    .font(.system(size: 30))
+            }
+            .onTapGesture {
+                viewModel.toggleVoiceRecognition()
+            }
+
+            ZStack {
+                Circle()
+                    .fill(Color("white"))
+                    .frame(width: 50, height: 50)
+                Image(systemName: "speaker.wave.2.fill")
+                    .foregroundColor(Color("P3"))
+                    .font(.system(size: 30))
+            }
+            .onTapGesture {
+                viewModel.speakText(for: viewModel.cards[viewModel.activeCardIndex])
+            }
+
+         
         }
         .padding()
     }
-
-    private var additionalIcons: some View {
-        VStack {
-            HStack {
-                Image(systemName: "star.fill")
-                    .resizable()
-                    .foregroundColor(Color("P3"))
-                    .frame(width: 32, height: 30)
-                    .padding(.leading, 60)
-                    .padding(.top, -75)
-                Spacer()
-            }
-            HStack {
-                Button(action: {
-                    viewModel.speakText(for: viewModel.cards[viewModel.activeCardIndex])
-                }) {
-                    Image(systemName: "play.fill")
-                        .resizable()
-                        .foregroundColor(Color("P3"))
-                        .frame(width: 22, height: 25)
-                        .padding(.top, -75)
-                        .padding(.leading, 230)
-                }
-            }
-        }
-    }
 }
 
+// MARK: - Card View (Unchanged)
 struct CustomCardView: View {
     let card: CustomCard
     let pronunciationResult: String
     let showResult: Bool
     let isActive: Bool
-    let speakAction: () -> Void
 
     var body: some View {
         VStack {
@@ -279,13 +286,6 @@ struct CustomCardView: View {
                     .font(.headline)
                     .foregroundColor(pronunciationResult.contains("✅") ? .green : .red)
                     .padding(.bottom, 10)
-            }
-
-            Button(action: speakAction) {
-                Image(systemName: "speaker.wave.2.fill")
-                    .resizable()
-                    .frame(width: 35, height: 35)
-                    .padding()
             }
 
             HStack(spacing: 10) {
@@ -315,24 +315,6 @@ struct CustomCardView: View {
                     )
                 )
         )
-    }
-}
-
-struct VoiceControlButton: View {
-    let iconName: String
-    let color: Color
-    let size: CGFloat
-
-    var body: some View {
-        Image(systemName: iconName)
-            .resizable()
-            .scaledToFit()
-            .frame(width: size, height: size)
-            .padding(size / 4)
-            .background(color)
-            .foregroundColor(.white)
-            .clipShape(Circle())
-            .shadow(color: color.opacity(0.4), radius: 5)
     }
 }
 
