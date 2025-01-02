@@ -9,15 +9,20 @@ struct CustomCard: Identifiable {
     let letters: String
     var pronunciationResult: String = ""
     var showResult: Bool = false
+    var isStarFilled: Bool
 }
 
 // MARK: - ViewModel
-class CustomCardsViewModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
-    @Published var cards: [CustomCard] = [
-        CustomCard(title: "أَنَا جَيِّد", letters: "د يِّ جَ"),
-        CustomCard(title: "بِخَيْر", letters: "ر يْ خَ بِ"),
-        CustomCard(title: "سَعِيد", letters: "د ي عِ سَ")
-    ]
+class CustomCardsViewModel: NSObject, ObservableObject, 
+    AVSpeechSynthesizerDelegate {
+        @Published var cards: [CustomCard] = [
+            CustomCard(title: "أنا جيد", letters: "د يِّ جَ ا نَ أَ", isStarFilled: false),
+            CustomCard(title: "بخير", letters: "ر يْ خَ بِ", isStarFilled: false),
+            CustomCard(title: "سعيد", letters: "د ي عِ سَ", isStarFilled: false)
+        ]
+    @Published var favoriteCards: [CustomCard] = []
+        
+
 
     @Published var searchText: String = ""
     @Published var pronunciationResult: String = ""
@@ -35,6 +40,21 @@ class CustomCardsViewModel: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
         super.init()
         speechSynthesizer.delegate = self
     }
+
+   // MARK: - Favorite Toggle
+        func toggleFavorite(for card: CustomCard) {
+            if let index = cards.firstIndex(where: { $0.id == card.id }) {
+                cards[index].isStarFilled.toggle()
+                
+                if cards[index].isStarFilled {
+                    // Add to favorites
+                    favoriteCards.append(cards[index])
+                } else {
+                    // Remove from favorites
+                    favoriteCards.removeAll { $0.id == card.id }
+                }
+            }
+        }
 
     func toggleVoiceRecognition() {
         if isListening {
@@ -170,7 +190,7 @@ class CustomCardsViewModel: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
 
 // MARK: - Views
 struct CustomCardsPage: View {
-    @StateObject private var viewModel = CustomCardsViewModel()
+    @ObservedObject var viewModel: CustomCardsViewModel
 
     var body: some View {
            ZStack {
@@ -210,7 +230,7 @@ struct CustomCardsPage: View {
             }
         }
     }
-
+/////change maybe from my side
     private var cardsView: some View {
         TabView(selection: $viewModel.activeCardIndex) {
             ForEach(viewModel.cards.indices, id: \.self) { index in
@@ -233,9 +253,12 @@ struct CustomCardsPage: View {
                 Circle()
                     .fill(Color("white"))
                     .frame(width: 50, height: 50)
-                Image(systemName: "star.fill")
+              Image(systemName: viewModel.cards[viewModel.activeCardIndex].isStarFilled ? "star.fill" : "star")
                     .foregroundColor(Color("P3"))
                     .font(.system(size: 30))
+            }
+            .onTapGesture {
+        viewModel.toggleFavorite(for: viewModel.cards[viewModel.activeCardIndex])
             }
             ZStack {
                 Circle()
@@ -273,6 +296,7 @@ struct CustomCardView: View {
     let pronunciationResult: String
     let showResult: Bool
     let isActive: Bool
+// let speakAction: () -> Void
 
     var body: some View {
         VStack {
@@ -321,6 +345,7 @@ struct CustomCardView: View {
 // MARK: - Preview
 struct CustomCardsPage_Previews: PreviewProvider {
     static var previews: some View {
-        CustomCardsPage()
+        // Provide a new or sample CustomCardsViewModel instance here
+        CustomCardsPage(viewModel: CustomCardsViewModel())
     }
 }

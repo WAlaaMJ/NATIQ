@@ -13,13 +13,7 @@ struct Tracker: View {
             VStack {
                 // العنوان والرجوع
                 HStack {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "arrow.left")
-                            .font(.title)
-                            .bold()
-                            .foregroundColor(Color("P3"))
-                            .padding()
-                    }
+                   
                     Spacer()
                     Image("logo")
                         .resizable()
